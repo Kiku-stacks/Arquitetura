@@ -1,151 +1,126 @@
 #include "cadastro.h"
 
-void inicializar(Aluno *al, int tam) {
-    int i;
-    for (i = 0; i < tam; i++) {
-        al[i].matricula          = 0;
-        al[i].nome[0]            = '\0';
-        al[i].notas.notaProva1   = 0.0f;
-        al[i].notas.notaProva2   = 0.0f;
-        al[i].notas.notaTrabalho = 0.0f;
-        al[i].media              = 0.0f;
-        strcpy(al[i].status, "");
-    }
+#define TAM 50
+
+static void exibirMenu(void) {
+    printf("\n------------------------------------\n");
+    printf("   SISTEMA DE CADASTRO DE ALUNOS\n");
+    printf("------------------------------------\n");
+    printf("  1. Cadastrar aluno\n");
+    printf("  2. Buscar aluno\n");
+    printf("  3. Listar todos\n");
+    printf("  4. Atualizar notas\n");
+    printf("  5. Dar bonus a aluno\n");
+    printf("  6. Remover aluno\n");
+    printf("  7. Ordenar por media\n");
+    printf("  0. Sair\n");
+    printf("------------------------------------\n");
+    printf("Opcao: ");
 }
 
-void cadastrar(Aluno *al, int *total) {
-    Aluno *a = &al[*total];
+int main(void) {
+    Aluno turma[TAM];
+    int total = 0;
+    int opcao;
 
-    printf("\n--- Cadastro de Aluno ---\n");
-    printf("Matricula: ");
-    scanf("%d", &a->matricula);
-    getchar();
+    inicializar(turma, TAM);
 
-    printf("Nome: ");
-    fgets(a->nome, sizeof(a->nome), stdin);
-    a->nome[strcspn(a->nome, "\n")] = '\0';
-
-    printf("Nota Prova 1 (0-10): ");
-    scanf("%f", &a->notas.notaProva1);
-
-    printf("Nota Prova 2 (0-10): ");
-    scanf("%f", &a->notas.notaProva2);
-
-    printf("Nota Trabalho (0-10): ");
-    scanf("%f", &a->notas.notaTrabalho);
-
-    calcularMedia(a);
-    definirStatus(a);
-
-    (*total)++;
-    printf("Aluno cadastrado com sucesso!\n");
-}
-
-Aluno* buscar(Aluno *al, int total, int mat) {
-    int i;
-    for (i = 0; i < total; i++) {
-        if (al[i].matricula == mat)
-            return &al[i];
-    }
-    return NULL;
-}
-
-void calcularMedia(Aluno *al) {
-    al->media = (al->notas.notaProva1   * 0.4f)
-              + (al->notas.notaProva2   * 0.4f)
-              + (al->notas.notaTrabalho * 0.2f);
-}
-
-void definirStatus(Aluno *al) {
-    if (al->media >= 7.0f)
-        strcpy(al->status, "Aprovado");
-    else if (al->media >= 5.0f)
-        strcpy(al->status, "Recuperacao");
-    else
-        strcpy(al->status, "Reprovado");
-}
-
-void darBonus(Aluno *al, float ponto) {
-    al->media += ponto;
-    if (al->media > 10.0f)
-        al->media = 10.0f;
-    definirStatus(al);
-}
-
-void imprimirBoletim(Aluno a) {
-    printf("\n--- BOLETIM ---\n");
-    printf("Matricula : %d\n",   a.matricula);
-    printf("Nome      : %s\n",   a.nome);
-    printf("Prova 1   : %.2f\n", a.notas.notaProva1);
-    printf("Prova 2   : %.2f\n", a.notas.notaProva2);
-    printf("Trabalho  : %.2f\n", a.notas.notaTrabalho);
-    printf("Media     : %.2f\n", a.media);
-    printf("Status    : %s\n",   a.status);
-    printf("---------------\n");
-}
-
-void listarTodos(Aluno *al, int total) {
-    int i;
-    if (total == 0) {
-        printf("\nNenhum aluno cadastrado.\n");
-        return;
-    }
-    for (i = 0; i < total; i++)
-        imprimirBoletim(al[i]);
-}
-
-void ordenar(Aluno *al, int total) {
-    int i, j, minIdx;
-    Aluno tmp;
-    for (i = 0; i < total - 1; i++) {
-        minIdx = i;
-        for (j = i + 1; j < total; j++) {
-            if (al[j].media < al[minIdx].media)
-                minIdx = j;
+    do {
+        exibirMenu();
+        if (scanf("%d", &opcao) != 1) {
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF);
+            printf("Opcao invalida.\n");
+            continue;
         }
-        if (minIdx != i) {
-            tmp        = al[i];
-            al[i]      = al[minIdx];
-            al[minIdx] = tmp;
+        getchar();
+
+        switch (opcao) {
+
+            case 1: {
+                if (total >= TAM) {
+                    printf("Cadastro cheio (max %d alunos).\n", TAM);
+                    break;
+                }
+                cadastrar(turma, &total);
+                break;
+            }
+
+            case 2: {
+                int mat;
+                printf("Matricula: ");
+                scanf("%d", &mat);
+                getchar();
+                Aluno *a = buscar(turma, total, mat);
+                if (a)
+                    imprimirBoletim(*a);
+                else
+                    printf("Aluno nao encontrado.\n");
+                break;
+            }
+
+            case 3: {
+                listarTodos(turma, total);
+                break;
+            }
+
+            case 4: {
+                int mat;
+                printf("Matricula: ");
+                scanf("%d", &mat);
+                getchar();
+                atualizar(turma, total, mat);
+                break;
+            }
+
+            case 5: {
+                int mat;
+                float bonus;
+                printf("Matricula: ");
+                scanf("%d", &mat);
+                getchar();
+                Aluno *a = buscar(turma, total, mat);
+                if (!a) {
+                    printf("Aluno nao encontrado.\n");
+                    break;
+                }
+                printf("Pontos de bonus: ");
+                scanf("%f", &bonus);
+                getchar();
+                darBonus(a, bonus);
+                printf("Bonus aplicado. Nova media: %.2f  Status: %s\n",
+                       a->media, a->status);
+                break;
+            }
+
+            case 6: {
+                int mat;
+                printf("Matricula: ");
+                scanf("%d", &mat);
+                getchar();
+                remover(turma, &total, mat);
+                break;
+            }
+
+            case 7: {
+                ordenar(turma, total);
+                printf("Turma ordenada por media crescente.\n");
+                listarTodos(turma, total);
+                break;
+            }
+
+            case 0: {
+                printf("Encerrando. Ate logo!\n");
+                break;
+            }
+
+            default: {
+                printf("Opcao invalida. Tente novamente.\n");
+                break;
+            }
         }
-    }
-}
 
-void remover(Aluno *al, int *total, int mat) {
-    int i, idx = -1;
-    for (i = 0; i < *total; i++) {
-        if (al[i].matricula == mat) {
-            idx = i;
-            break;
-        }
-    }
-    if (idx == -1) {
-        printf("Aluno com matricula %d nao encontrado.\n", mat);
-        return;
-    }
-    for (i = idx; i < *total - 1; i++)
-        al[i] = al[i + 1];
-    (*total)--;
-    printf("Aluno removido com sucesso.\n");
-}
+    } while (opcao != 0);
 
-void atualizar(Aluno *al, int total, int mat) {
-    Aluno *a = buscar(al, total, mat);
-    if (!a) {
-        printf("Aluno com matricula %d nao encontrado.\n", mat);
-        return;
-    }
-    printf("\n--- Atualizacao de Notas (matricula %d) ---\n", mat);
-    printf("Nova Nota Prova 1 (0-10): ");
-    scanf("%f", &a->notas.notaProva1);
-
-    printf("Nova Nota Prova 2 (0-10): ");
-    scanf("%f", &a->notas.notaProva2);
-
-    printf("Nova Nota Trabalho (0-10): ");
-    scanf("%f", &a->notas.notaTrabalho);
-
-    calcularMedia(a);
-    definirStatus(a);
-    printf("Notas atualizadas com sucesso!\n");
+    return 0;
 }
